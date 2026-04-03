@@ -67,38 +67,42 @@ export function ReminderEngine() {
             .maybeSingle();
 
           if (!existingLog) {
-            // Create pending log
-            await supabase.from("medication_logs").insert({
-              medication_id: med.id,
-              user_id: user.id,
-              scheduled_date: today,
-              scheduled_time: time,
-              status: "pending",
-            });
+            try {
+              // Create pending log
+              await supabase.from("medication_logs").insert({
+                medication_id: med.id,
+                user_id: user.id,
+                scheduled_date: today,
+                scheduled_time: time,
+                status: "pending",
+              });
 
-            // Create notification log
-            await supabase.from("notification_logs").insert({
-              user_id: user.id,
-              medication_id: med.id,
-              type: "reminder",
-              message: `Time to take ${med.name} (${med.dosage})`,
-              status: "sent",
-            });
-
-            // Play sound and show toast
-            playSound("reminder");
-            toast(`💊 Time to take ${med.name} (${med.dosage})`, {
-              duration: 10000,
-              icon: "⏰",
-              style: {
-                background: "var(--card)",
-                color: "var(--foreground)",
-                border: "2px solid var(--primary)",
-              },
-            });
-
-            refreshLogs();
-            refreshNotifications();
+              // Create notification log
+              await supabase.from("notification_logs").insert({
+                user_id: user.id,
+                medication_id: med.id,
+                type: "reminder",
+                message: `Time to take ${med.name} (${med.dosage})`,
+                status: "sent",
+              });
+              
+              refreshLogs();
+              refreshNotifications();
+            } catch (err) {
+              console.error("Failed to sync reminder to DB, showing local fallback", err);
+            } finally {
+              // Always play sound and show toast as fallback
+              playSound("reminder");
+              toast(`💊 Time to take ${med.name} (${med.dosage})`, {
+                duration: 10000,
+                icon: "⏰",
+                style: {
+                  background: "var(--card)",
+                  color: "var(--foreground)",
+                  border: "2px solid var(--primary)",
+                },
+              });
+            }
           }
         }
       }

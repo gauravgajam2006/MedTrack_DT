@@ -10,9 +10,22 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { format, subDays, parseISO } from "date-fns";
-import { TodaysMedications } from "@/components/dashboard/todays-medications";
-import { AdherenceCharts } from "@/components/dashboard/adherence-charts";
-import { NotificationFeed } from "@/components/dashboard/notification-feed";
+import dynamic from "next/dynamic";
+
+const TodaysMedications = dynamic(() => import("@/components/dashboard/todays-medications").then(mod => ({ default: mod.TodaysMedications })), { 
+  ssr: false, 
+  loading: () => <div className="skeleton h-64 w-full rounded-2xl" /> 
+});
+
+const AdherenceCharts = dynamic(() => import("@/components/dashboard/adherence-charts").then(mod => ({ default: mod.AdherenceCharts })), { 
+  ssr: false, 
+  loading: () => <div className="skeleton h-72 w-full rounded-2xl" /> 
+});
+
+const NotificationFeed = dynamic(() => import("@/components/dashboard/notification-feed").then(mod => ({ default: mod.NotificationFeed })), { 
+  ssr: false, 
+  loading: () => <div className="skeleton h-72 w-full rounded-2xl" /> 
+});
 
 const containerVariants = {
   hidden: { opacity: 0 },

@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
 import { ReminderEngine } from "@/components/reminders/reminder-engine";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pill } from "lucide-react";
 
@@ -64,6 +64,7 @@ export default function DashboardLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
@@ -92,7 +93,7 @@ export default function DashboardLayout({
         <main className="p-4 md:p-6 lg:p-8">
           <AnimatePresence mode="wait">
             <motion.div
-              key={typeof window !== "undefined" ? window.location.pathname : "page"}
+              key={pathname}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}

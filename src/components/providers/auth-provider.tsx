@@ -7,6 +7,7 @@ import React, {
   useState,
   useCallback,
   useRef,
+  useMemo,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
@@ -139,8 +140,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) await fetchProfile(user.id);
   }, [user, fetchProfile]);
 
+  const authValue = useMemo(
+    () => ({ user, profile, loading, signOut, signInWithGoogle, refreshProfile }),
+    [user, profile, loading, signOut, signInWithGoogle, refreshProfile]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut, signInWithGoogle, refreshProfile }}>
+    <AuthContext.Provider value={authValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -220,7 +226,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setNotifications([]);
       setLoadingData(false);
     }
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, refreshAll]);
 
   // Realtime subscription for medication_logs
   useEffect(() => {
@@ -247,19 +253,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     };
   }, [user, supabase, refreshLogs]);
 
+  const dataValue = useMemo(
+    () => ({
+      medications,
+      logs,
+      notifications,
+      loadingData,
+      refreshMedications,
+      refreshLogs,
+      refreshNotifications,
+      refreshAll,
+    }),
+    [
+      medications,
+      logs,
+      notifications,
+      loadingData,
+      refreshMedications,
+      refreshLogs,
+      refreshNotifications,
+      refreshAll,
+    ]
+  );
+
   return (
-    <DataContext.Provider
-      value={{
-        medications,
-        logs,
-        notifications,
-        loadingData,
-        refreshMedications,
-        refreshLogs,
-        refreshNotifications,
-        refreshAll,
-      }}
-    >
+    <DataContext.Provider value={dataValue}>
       {children}
     </DataContext.Provider>
   );
