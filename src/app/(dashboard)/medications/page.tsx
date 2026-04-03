@@ -359,7 +359,6 @@ function MedicationModal({
     setLoading(true);
 
     const data = {
-      user_id: userId,
       name,
       dosage,
       frequency,

@@ -96,7 +96,6 @@ export function TodaysMedications() {
       } else {
         await supabase.from("medication_logs").insert({
           medication_id: medId,
-          user_id: user.id,
           scheduled_date: today,
           scheduled_time: time,
           status: "taken",
@@ -128,7 +127,6 @@ export function TodaysMedications() {
       } else {
         await supabase.from("medication_logs").insert({
           medication_id: medId,
-          user_id: user.id,
           scheduled_date: today,
           scheduled_time: time,
           status: "missed",
@@ -146,7 +144,6 @@ export function TodaysMedications() {
     if (!user) return;
 
     await supabase.from("notification_logs").insert({
-      user_id: user.id,
       medication_id: medId,
       type: "whatsapp",
       message: `WhatsApp Reminder: Time to take ${medName}`,

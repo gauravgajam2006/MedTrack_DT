@@ -120,7 +120,6 @@ export function ReminderEngine() {
               // Create pending log
               const { data: logData, error: logError } = await supabase.from("medication_logs").insert({
                 medication_id: med.id,
-                user_id: user.id,
                 scheduled_date: today,
                 scheduled_time: time,
                 status: "pending",
@@ -134,7 +133,6 @@ export function ReminderEngine() {
 
               // Create notification log
               const { data: notifData, error: notifError } = await supabase.from("notification_logs").insert({
-                user_id: user.id,
                 medication_id: med.id,
                 type: "reminder",
                 message: `Time to take ${med.name} (${med.dosage})`,
@@ -209,7 +207,6 @@ export function ReminderEngine() {
           // Guardian/Doctor notification (demo)
           if (profile?.guardian_contact) {
             await supabase.from("notification_logs").insert({
-              user_id: user.id,
               medication_id: log.medication_id,
               type: "guardian",
               message: `Missed dose alert: ${(log as Record<string, unknown>).medications ? ((log as Record<string, unknown>).medications as Record<string, string>).name : "Medication"} was not taken on time.`,
@@ -219,7 +216,6 @@ export function ReminderEngine() {
 
           if (profile?.doctor_contact) {
             await supabase.from("notification_logs").insert({
-              user_id: user.id,
               medication_id: log.medication_id,
               type: "doctor",
               message: `Patient missed dose: ${(log as Record<string, unknown>).medications ? ((log as Record<string, unknown>).medications as Record<string, string>).name : "Medication"}`,
