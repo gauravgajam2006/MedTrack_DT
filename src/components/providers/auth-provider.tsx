@@ -83,11 +83,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const init = async () => {
       try {
         const {
-          data: { user: currentUser },
-        } = await supabase.auth.getUser();
+          data: { session },
+        } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
         if (mounted && currentUser) {
           setUser(currentUser);
-          await fetchProfile(currentUser.id);
+          fetchProfile(currentUser.id); // don't await to speed up loading
         }
       } finally {
         if (mounted) setLoading(false);
@@ -103,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        await fetchProfile(currentUser.id);
+        fetchProfile(currentUser.id); // don't await to speed up loading
       } else {
         setProfile(null);
       }
