@@ -14,18 +14,13 @@ export function ReminderEngine() {
   const checkedRef = useRef<Set<string>>(new Set());
   const lastCleanupDateRef = useRef<string>("");
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const missedIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup stale entries from checkedRef when the date changes
   const cleanupCheckedRef = useCallback(() => {
     const today = format(new Date(), "yyyy-MM-dd");
     if (lastCleanupDateRef.current && lastCleanupDateRef.current !== today) {
-      // Remove all entries that don't match today's date
-      const entries = Array.from(checkedRef.current);
-      for (const key of entries) {
-        if (!key.includes(today)) {
-          checkedRef.current.delete(key);
-        }
-      }
+      checkedRef.current.clear();
     }
     lastCleanupDateRef.current = today;
   }, []);
@@ -36,7 +31,7 @@ export function ReminderEngine() {
     cleanupCheckedRef();
 
     const now = new Date();
-    const currentTime = format(now, "HH:mm");
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const today = format(now, "yyyy-MM-dd");
 
     for (const med of medications) {
@@ -50,11 +45,13 @@ export function ReminderEngine() {
         const key = `${med.id}-${today}-${time}`;
         if (checkedRef.current.has(key)) continue;
 
-        // Check if the scheduled time matches current time (within 1 minute)
+        // Check if the scheduled time is within a 2-minute window
         const [schedH, schedM] = time.split(":").map(Number);
-        const [nowH, nowM] = currentTime.split(":").map(Number);
+        const schedMinutes = schedH * 60 + schedM;
+        const diff = nowMinutes - schedMinutes;
 
-        if (schedH === nowH && schedM === nowM) {
+        // Fire if current time is 0-1 minutes past the scheduled time
+        if (diff >= 0 && diff <= 1) {
           checkedRef.current.add(key);
 
           // Check if log already exists
@@ -69,7 +66,7 @@ export function ReminderEngine() {
           if (!existingLog) {
             try {
               // Create pending log
-              await supabase.from("medication_logs").insert({
+              const { error: logError } = await supabase.from("medication_logs").insert({
                 medication_id: med.id,
                 user_id: user.id,
                 scheduled_date: today,
@@ -77,19 +74,27 @@ export function ReminderEngine() {
                 status: "pending",
               });
 
+              if (logError) {
+                console.error("[ReminderEngine] Failed to create medication log:", logError.message);
+              }
+
               // Create notification log
-              await supabase.from("notification_logs").insert({
+              const { error: notifError } = await supabase.from("notification_logs").insert({
                 user_id: user.id,
                 medication_id: med.id,
                 type: "reminder",
                 message: `Time to take ${med.name} (${med.dosage})`,
                 status: "sent",
               });
+
+              if (notifError) {
+                console.error("[ReminderEngine] Failed to create notification:", notifError.message);
+              }
               
               refreshLogs();
               refreshNotifications();
             } catch (err) {
-              console.error("Failed to sync reminder to DB, showing local fallback", err);
+              console.error("[ReminderEngine] Failed to sync reminder to DB, showing local fallback", err);
             } finally {
               // Always play sound and show toast as fallback
               playSound("reminder");
@@ -116,50 +121,59 @@ export function ReminderEngine() {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
     const today = format(new Date(), "yyyy-MM-dd");
 
-    const { data: pendingLogs } = await supabase
-      .from("medication_logs")
-      .select("*, medications(name, dosage)")
-      .eq("user_id", user.id)
-      .eq("status", "pending")
-      .eq("scheduled_date", today);
+    try {
+      const { data: pendingLogs, error } = await supabase
+        .from("medication_logs")
+        .select("*, medications(name, dosage)")
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .eq("scheduled_date", today);
 
-    if (!pendingLogs) return;
-
-    for (const log of pendingLogs) {
-      const [h, m] = log.scheduled_time.split(":").map(Number);
-      const scheduledAt = new Date();
-      scheduledAt.setHours(h, m, 0, 0);
-
-      if (scheduledAt < twoHoursAgo) {
-        await supabase
-          .from("medication_logs")
-          .update({ status: "missed" })
-          .eq("id", log.id);
-
-        // Guardian/Doctor notification (demo)
-        if (profile?.guardian_contact) {
-          await supabase.from("notification_logs").insert({
-            user_id: user.id,
-            medication_id: log.medication_id,
-            type: "guardian",
-            message: `Missed dose alert: ${(log as Record<string, unknown>).medications ? ((log as Record<string, unknown>).medications as Record<string, string>).name : "Medication"} was not taken on time.`,
-            status: "demo",
-          });
-        }
-
-        if (profile?.doctor_contact) {
-          await supabase.from("notification_logs").insert({
-            user_id: user.id,
-            medication_id: log.medication_id,
-            type: "doctor",
-            message: `Patient missed dose: ${(log as Record<string, unknown>).medications ? ((log as Record<string, unknown>).medications as Record<string, string>).name : "Medication"}`,
-            status: "demo",
-          });
-        }
-
-        refreshLogs();
-        refreshNotifications();
+      if (error) {
+        console.error("[ReminderEngine] Failed to fetch pending logs:", error.message);
+        return;
       }
+
+      if (!pendingLogs) return;
+
+      for (const log of pendingLogs) {
+        const [h, m] = log.scheduled_time.split(":").map(Number);
+        const scheduledAt = new Date();
+        scheduledAt.setHours(h, m, 0, 0);
+
+        if (scheduledAt < twoHoursAgo) {
+          await supabase
+            .from("medication_logs")
+            .update({ status: "missed" })
+            .eq("id", log.id);
+
+          // Guardian/Doctor notification (demo)
+          if (profile?.guardian_contact) {
+            await supabase.from("notification_logs").insert({
+              user_id: user.id,
+              medication_id: log.medication_id,
+              type: "guardian",
+              message: `Missed dose alert: ${(log as Record<string, unknown>).medications ? ((log as Record<string, unknown>).medications as Record<string, string>).name : "Medication"} was not taken on time.`,
+              status: "demo",
+            });
+          }
+
+          if (profile?.doctor_contact) {
+            await supabase.from("notification_logs").insert({
+              user_id: user.id,
+              medication_id: log.medication_id,
+              type: "doctor",
+              message: `Patient missed dose: ${(log as Record<string, unknown>).medications ? ((log as Record<string, unknown>).medications as Record<string, string>).name : "Medication"}`,
+              status: "demo",
+            });
+          }
+
+          refreshLogs();
+          refreshNotifications();
+        }
+      }
+    } catch (err) {
+      console.error("[ReminderEngine] checkMissed error:", err);
     }
   }, [user, profile, supabase, refreshLogs, refreshNotifications]);
 
@@ -176,15 +190,16 @@ export function ReminderEngine() {
     }, 30000);
 
     // Check missed every 5 minutes
-    const missedInterval = setInterval(() => {
+    missedIntervalRef.current = setInterval(() => {
       checkMissed();
     }, 300000);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      clearInterval(missedInterval);
+      if (missedIntervalRef.current) clearInterval(missedIntervalRef.current);
     };
   }, [user, checkReminders, checkMissed]);
 
   return null;
 }
+

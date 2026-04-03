@@ -374,15 +374,25 @@ function MedicationModal({
           .from("medications")
           .update(data)
           .eq("id", medication.id);
-        if (error) throw error;
+        if (error) {
+          console.error("[MedicationModal] Update error:", error);
+          toast.error(`Failed to update: ${error.message}`);
+          return;
+        }
         toast.success("Medication updated");
       } else {
-        const { error } = await supabase.from("medications").insert(data);
-        if (error) throw error;
-        toast.success("Medication added");
+        const { data: inserted, error } = await supabase.from("medications").insert(data).select();
+        if (error) {
+          console.error("[MedicationModal] Insert error:", error);
+          toast.error(`Failed to add: ${error.message}`);
+          return;
+        }
+        console.log("[MedicationModal] Inserted medication:", inserted);
+        toast.success("Medication added! 🎉");
       }
       onSave();
-    } catch {
+    } catch (err) {
+      console.error("[MedicationModal] Unexpected error:", err);
       toast.error("Failed to save medication");
     } finally {
       setLoading(false);

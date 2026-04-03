@@ -65,14 +65,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (fetchingRef.current) return;
       fetchingRef.current = true;
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("users")
           .select("*")
           .eq("id", userId)
           .single();
+        if (error) {
+          console.warn("[AuthProvider] Profile fetch failed:", error.message);
+        }
         if (data) setProfile(data);
-      } catch {
-        // Profile may not exist yet
+      } catch (err) {
+        console.warn("[AuthProvider] Profile may not exist yet:", err);
       } finally {
         fetchingRef.current = false;
       }
@@ -91,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const currentUser = session?.user ?? null;
         if (mounted && currentUser) {
           setUser(currentUser);
-          fetchProfile(currentUser.id); // don't await to speed up loading
+          fetchProfile(currentUser.id);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -107,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        fetchProfile(currentUser.id); // don't await to speed up loading
+        fetchProfile(currentUser.id);
       } else {
         setProfile(null);
       }
@@ -137,7 +140,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
+    if (user) {
+      fetchingRef.current = false; // Reset mutex so profile can be re-fetched
+      await fetchProfile(user.id);
+    }
   }, [user, fetchProfile]);
 
   const authValue = useMemo(
@@ -159,81 +165,97 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationLog[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const supabase = createClient();
-  const fetchingRef = useRef(false);
+  const initialLoadDone = useRef(false);
 
   const refreshMedications = useCallback(async () => {
     if (!user) return;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("medications")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
+      if (error) {
+        console.error("[DataProvider] Failed to fetch medications:", error.message);
+        return;
+      }
       if (data) setMedications(data);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[DataProvider] Medications fetch error:", err);
     }
   }, [user, supabase]);
 
   const refreshLogs = useCallback(async () => {
     if (!user) return;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("medication_logs")
         .select("*")
         .eq("user_id", user.id)
         .order("scheduled_date", { ascending: false })
         .limit(500);
+      if (error) {
+        console.error("[DataProvider] Failed to fetch logs:", error.message);
+        return;
+      }
       if (data) setLogs(data);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[DataProvider] Logs fetch error:", err);
     }
   }, [user, supabase]);
 
   const refreshNotifications = useCallback(async () => {
     if (!user) return;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("notification_logs")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(100);
+      if (error) {
+        console.error("[DataProvider] Failed to fetch notifications:", error.message);
+        return;
+      }
       if (data) setNotifications(data);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[DataProvider] Notifications fetch error:", err);
     }
   }, [user, supabase]);
 
+  // refreshAll is ONLY for the initial load — individual refreshes are never blocked
   const refreshAll = useCallback(async () => {
-    if (fetchingRef.current || !user) return;
-    fetchingRef.current = true;
+    if (!user) return;
     setLoadingData(true);
     try {
       await Promise.all([refreshMedications(), refreshLogs(), refreshNotifications()]);
     } finally {
       setLoadingData(false);
-      fetchingRef.current = false;
+      initialLoadDone.current = true;
     }
   }, [user, refreshMedications, refreshLogs, refreshNotifications]);
 
+  // Initial data load when user changes
   useEffect(() => {
     if (user) {
+      initialLoadDone.current = false;
       refreshAll();
     } else {
       setMedications([]);
       setLogs([]);
       setNotifications([]);
       setLoadingData(false);
+      initialLoadDone.current = false;
     }
-  }, [user, refreshAll]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
-  // Realtime subscription for medication_logs
+  // Realtime subscriptions for all relevant tables
   useEffect(() => {
     if (!user) return;
 
     const channel = supabase
-      .channel("realtime-logs")
+      .channel(`realtime-data-${user.id}`)
       .on(
         "postgres_changes",
         {
@@ -246,12 +268,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           refreshLogs();
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "medications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          refreshMedications();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notification_logs",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          refreshNotifications();
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, supabase, refreshLogs]);
+  }, [user, supabase, refreshLogs, refreshMedications, refreshNotifications]);
 
   const dataValue = useMemo(
     () => ({
