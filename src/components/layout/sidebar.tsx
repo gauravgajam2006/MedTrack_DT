@@ -12,6 +12,7 @@ import {
   X,
   ExternalLink,
 } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -34,8 +35,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Logo */}
       <div className="px-6 py-6 flex items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-shadow">
-            <Pill className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-shadow">
+            <Image src="/medtrack_logo.png" alt="MedTrack Logo" width={40} height={40} className="object-cover" />
           </div>
           <span className="text-xl font-bold gradient-text">MedTrack</span>
         </Link>

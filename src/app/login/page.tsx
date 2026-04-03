@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Pill, Heart, Shield } from "lucide-react";
 import toast from "react-hot-toast";
@@ -76,10 +77,10 @@ export default function LoginPage() {
           >
             <div className="flex items-center gap-3 mb-8">
               <motion.div
-                className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center"
+                className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center overflow-hidden"
                 whileHover={{ scale: 1.05, rotate: 5 }}
               >
-                <Pill className="w-8 h-8 text-white" />
+                <Image src="/medtrack_logo.png" alt="MedTrack Logo" width={56} height={56} className="object-cover" />
               </motion.div>
               <span className="text-3xl font-bold tracking-tight">MedTrack</span>
             </div>
@@ -124,8 +125,8 @@ export default function LoginPage() {
         >
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
-              <Pill className="w-7 h-7 text-primary" />
+            <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shadow-lg shadow-primary/20">
+              <Image src="/medtrack_logo.png" alt="MedTrack Logo" width={48} height={48} className="object-cover" />
             </div>
             <span className="text-2xl font-bold gradient-text">MedTrack</span>
           </div>
