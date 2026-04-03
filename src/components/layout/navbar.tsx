@@ -10,6 +10,11 @@ import {
   Moon,
   LogOut,
   Bell,
+  MessageCircle,
+  Users,
+  ShieldAlert,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -129,54 +134,99 @@ export function Navbar({ onMenuClick }: NavbarProps) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute right-0 mt-2 w-80 bg-popover border border-border shadow-lg rounded-2xl overflow-hidden z-50 origin-top-right"
+                className="absolute right-0 mt-3 w-[360px] bg-card/95 backdrop-blur-2xl border border-border shadow-2xl rounded-2xl overflow-hidden z-50 origin-top-right ring-1 ring-black/5"
               >
-                <div className="px-4 py-3 border-b border-border flex justify-between items-center bg-muted/50">
-                  <h3 className="font-semibold text-sm">Quick Reminders</h3>
-                  <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">
+                <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-secondary/30">
+                  <div>
+                    <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-primary" />
+                      Quick Reminders
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">Your recent activity</p>
+                  </div>
+                  <span className="text-[11px] bg-primary/10 text-primary px-2.5 py-1 rounded-lg font-bold shadow-sm border border-primary/10">
                     {notifications.length} New
                   </span>
                 </div>
-                <div className="max-h-80 overflow-y-auto">
+
+                <div className="max-h-[420px] overflow-y-auto custom-scrollbar">
                   {notifications.length > 0 ? (
-                    <div className="divide-y divide-border">
-                      {notifications.slice(0, 5).map((notif) => (
-                        <div key={notif.id} className="px-4 py-3 hover:bg-secondary/50 transition-colors">
-                          <div className="flex gap-3">
-                            <div className="mt-0.5">
-                              <div className="w-2 h-2 rounded-full bg-primary" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-foreground line-clamp-2">
-                                {notif.message}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {formatDistanceToNow(parseISO(notif.created_at), { addSuffix: true })}
-                              </p>
+                    <div className="divide-y divide-border/50">
+                      {notifications.slice(0, 10).map((notif) => {
+                        // Icon and color based on type
+                        let Icon = Clock;
+                        let iconBg = "bg-blue-500/10";
+                        let iconColor = "text-blue-500";
+                        
+                        if (notif.type === "whatsapp") {
+                          Icon = MessageCircle;
+                          iconBg = "bg-green-500/10";
+                          iconColor = "text-green-500";
+                        } else if (notif.type === "guardian" || notif.type === "doctor") {
+                          Icon = ShieldAlert;
+                          iconBg = "bg-amber-500/10";
+                          iconColor = "text-amber-500";
+                        } else if (notif.status === "sent") {
+                          Icon = CheckCircle2;
+                          iconBg = "bg-success/10";
+                          iconColor = "text-success";
+                        }
+
+                        return (
+                          <div 
+                            key={notif.id} 
+                            className="px-5 py-4 hover:bg-secondary/40 transition-all cursor-pointer group relative overflow-hidden"
+                          >
+                            {/* Hover accent */}
+                            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                            
+                            <div className="flex gap-4">
+                              <div className={cn("shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110", iconBg)}>
+                                <Icon className={cn("w-5 h-5", iconColor)} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-foreground leading-snug">
+                                  {notif.message}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <Clock className="w-3 h-3 text-muted-foreground/60" />
+                                  <p className="text-[11px] text-muted-foreground font-medium">
+                                    {formatDistanceToNow(parseISO(notif.created_at), { addSuffix: true })}
+                                  </p>
+                                  {notif.status === "demo" && (
+                                    <span className="ml-auto text-[9px] font-bold uppercase tracking-widest text-primary/60 px-1.5 py-0.5 rounded bg-primary/5 border border-primary/10">
+                                      Demo
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      No new reminders.
+                    <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                      <div className="w-12 h-12 bg-secondary rounded-2xl flex items-center justify-center mb-3">
+                        <Bell className="w-6 h-6 text-muted-foreground/40" />
+                      </div>
+                      <h4 className="text-sm font-semibold text-foreground">No new reminders</h4>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-[180px]">We'll notify you here when it's time for your medication.</p>
                     </div>
                   )}
                 </div>
-                {notifications.length > 0 && (
-                  <div className="px-4 py-2 border-t border-border bg-muted/30 text-center">
-                    <button 
-                      onClick={() => {
-                        setShowNotifications(false);
-                        router.push("/dashboard");
-                      }}
-                      className="text-xs font-medium text-primary hover:underline"
-                    >
-                      View all in dashboard log
-                    </button>
-                  </div>
-                )}
+
+                <div className="px-5 py-3 border-t border-border bg-muted/20">
+                  <button 
+                    onClick={() => {
+                      setShowNotifications(false);
+                      router.push("/dashboard");
+                    }}
+                    className="w-full text-center py-2 text-xs font-bold text-primary hover:text-primary-light transition-colors rounded-lg hover:bg-primary/5"
+                  >
+                    View all in dashboard log
+                  </button>
+                </div>
               </motion.div>
             )}
           </div>
