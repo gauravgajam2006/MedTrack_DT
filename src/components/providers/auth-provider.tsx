@@ -17,6 +17,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   signOut: async () => {},
+  signInWithGoogle: async () => {},
   refreshProfile: async () => {},
 });
 
@@ -123,12 +125,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   }, [supabase]);
 
+  const signInWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) throw error;
+  }, [supabase]);
+
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
   }, [user, fetchProfile]);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signOut, signInWithGoogle, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

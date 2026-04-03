@@ -49,13 +49,26 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       {/* User Info */}
       <div className="px-4 mb-6">
-        <div className="px-4 py-3 rounded-xl bg-secondary/50 border border-border/50">
-          <p className="font-medium text-sm text-foreground truncate">
-            {profile?.name || "User"}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5 truncate">
-            {profile?.phone || "Set up your profile"}
-          </p>
+        <div className="px-4 py-3 rounded-xl bg-secondary/50 border border-border/50 flex items-center gap-3">
+          {profile?.avatar_url ? (
+            <img
+              src={profile.avatar_url}
+              alt={profile.name || "User"}
+              className="w-10 h-10 rounded-full border border-border object-cover"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center border border-border">
+              <User className="w-5 h-5 text-primary" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm text-foreground truncate">
+              {profile?.name || "User"}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              {profile?.phone || "Patient"}
+            </p>
+          </div>
         </div>
       </div>
 

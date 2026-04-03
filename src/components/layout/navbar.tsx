@@ -124,9 +124,17 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
           {/* Avatar with glow ring */}
           <div className="relative ml-1">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold ring-2 ring-primary/20 animate-glow-pulse">
-              {profile?.name?.[0]?.toUpperCase() || "U"}
-            </div>
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={profile.name || "User"}
+                className="w-10 h-10 rounded-full border-2 border-primary/20 object-cover shadow-sm p-0.5 bg-background"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold ring-2 ring-primary/20">
+                {profile?.name?.[0]?.toUpperCase() || "U"}
+              </div>
+            )}
           </div>
         </div>
       </div>

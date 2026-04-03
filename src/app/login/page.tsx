@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers/auth-provider";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Pill, Heart, Shield } from "lucide-react";
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { signInWithGoogle } = useAuth();
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -42,13 +44,11 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    if (error) toast.error(error.message);
+    try {
+      await signInWithGoogle();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
   };
 
   const features = [
