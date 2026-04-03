@@ -14,6 +14,8 @@ import {
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { useData } from "@/components/providers/auth-provider";
+import { formatDistanceToNow, parseISO } from "date-fns";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -21,10 +23,13 @@ interface NavbarProps {
 
 export function Navbar({ onMenuClick }: NavbarProps) {
   const { profile, signOut } = useAuth();
+  const { notifications } = useData();
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [bellAnimating, setBellAnimating] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = React.useRef<HTMLDivElement>(null);
 
   // Track scroll for border glow
   useEffect(() => {
@@ -33,6 +38,17 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Periodic bell ring animation
@@ -88,17 +104,82 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         {/* Right */}
         <div className="flex items-center gap-2">
           {/* Notifications Indicator */}
-          <button className="relative p-2.5 rounded-xl hover:bg-secondary transition-colors group">
-            <motion.div
-              animate={bellAnimating ? {
-                rotate: [0, 12, -10, 8, -5, 2, 0],
-              } : {}}
-              transition={{ duration: 0.8, ease: "easeInOut" }}
+          <div className="relative" ref={notificationRef}>
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2.5 rounded-xl hover:bg-secondary transition-colors group"
             >
-              <Bell className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </motion.div>
-            <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-dot-pulse" />
-          </button>
+              <motion.div
+                animate={bellAnimating ? {
+                  rotate: [0, 12, -10, 8, -5, 2, 0],
+                } : {}}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+              >
+                <Bell className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </motion.div>
+              {notifications.length > 0 && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-dot-pulse" />
+              )}
+            </button>
+
+            {/* Notification Dropdown */}
+            {showNotifications && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="absolute right-0 mt-2 w-80 bg-popover border border-border shadow-lg rounded-2xl overflow-hidden z-50 origin-top-right"
+              >
+                <div className="px-4 py-3 border-b border-border flex justify-between items-center bg-muted/50">
+                  <h3 className="font-semibold text-sm">Quick Reminders</h3>
+                  <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">
+                    {notifications.length} New
+                  </span>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    <div className="divide-y divide-border">
+                      {notifications.slice(0, 5).map((notif) => (
+                        <div key={notif.id} className="px-4 py-3 hover:bg-secondary/50 transition-colors">
+                          <div className="flex gap-3">
+                            <div className="mt-0.5">
+                              <div className="w-2 h-2 rounded-full bg-primary" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-foreground line-clamp-2">
+                                {notif.message}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDistanceToNow(parseISO(notif.created_at), { addSuffix: true })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No new reminders.
+                    </div>
+                  )}
+                </div>
+                {notifications.length > 0 && (
+                  <div className="px-4 py-2 border-t border-border bg-muted/30 text-center">
+                    <button 
+                      onClick={() => {
+                        setShowNotifications(false);
+                        router.push("/dashboard");
+                      }}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      View all in dashboard log
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </div>
 
           {/* Theme Toggle */}
           <motion.button
