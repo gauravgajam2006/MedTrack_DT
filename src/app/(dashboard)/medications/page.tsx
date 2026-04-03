@@ -368,31 +368,38 @@ function MedicationModal({
       end_date: endDate || null,
     };
 
+    console.log(`[MEDTRACK_DEBUG][MedicationModal] handleSubmit — mode=${medication ? "UPDATE" : "CREATE"}, userId=${userId}`);
+    console.log("[MEDTRACK_DEBUG][MedicationModal] Payload:", JSON.stringify(data, null, 2));
+
     try {
       if (medication) {
+        console.log(`[MEDTRACK_DEBUG][MedicationModal] Updating medication id=${medication.id}`);
         const { error } = await supabase
           .from("medications")
           .update(data)
           .eq("id", medication.id);
         if (error) {
-          console.error("[MedicationModal] Update error:", error);
+          console.error("[MEDTRACK_DEBUG][MedicationModal] UPDATE FAILED:", error.message, "| code:", error.code, "| details:", error.details);
           toast.error(`Failed to update: ${error.message}`);
           return;
         }
+        console.log("[MEDTRACK_DEBUG][MedicationModal] UPDATE SUCCESS");
         toast.success("Medication updated");
       } else {
+        console.log("[MEDTRACK_DEBUG][MedicationModal] Inserting new medication...");
         const { data: inserted, error } = await supabase.from("medications").insert(data).select();
         if (error) {
-          console.error("[MedicationModal] Insert error:", error);
+          console.error("[MEDTRACK_DEBUG][MedicationModal] INSERT FAILED:", error.message, "| code:", error.code, "| details:", error.details);
           toast.error(`Failed to add: ${error.message}`);
           return;
         }
-        console.log("[MedicationModal] Inserted medication:", inserted);
+        console.log("[MEDTRACK_DEBUG][MedicationModal] INSERT SUCCESS:", inserted);
         toast.success("Medication added! 🎉");
       }
+      console.log("[MEDTRACK_DEBUG][MedicationModal] Calling onSave() → will trigger refreshMedications()");
       onSave();
     } catch (err) {
-      console.error("[MedicationModal] Unexpected error:", err);
+      console.error("[MEDTRACK_DEBUG][MedicationModal] EXCEPTION:", err);
       toast.error("Failed to save medication");
     } finally {
       setLoading(false);

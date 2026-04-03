@@ -33,12 +33,26 @@ export function TodaysMedications() {
   const [celebratingId, setCelebratingId] = useState<string | null>(null);
 
   const todaysMeds = useMemo(() => {
-    return medications
+    
+    // Parse "YYYY-MM-DD" as local midnight (not UTC)
+    const parseLocal = (s: string) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+    const nowDate = new Date();
+    const todayLocal = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
+
+    const result = medications
       .filter((med) => {
-        if (!med.is_active) return false;
-        const start = new Date(med.start_date);
-        if (start > new Date()) return false;
-        if (med.end_date && new Date(med.end_date) < new Date()) return false;
+        if (!med.is_active) {
+          return false;
+        }
+        const start = parseLocal(med.start_date);
+        if (start > todayLocal) {
+          console.log(`[TodaysMedications] FILTER OUT "${med.name}" — start_date=${med.start_date} is future`);
+          return false;
+        }
+        if (med.end_date && parseLocal(med.end_date) < todayLocal) {
+          console.log(`[TodaysMedications] FILTER OUT "${med.name}" — end_date=${med.end_date} has passed`);
+          return false;
+        }
         return true;
       })
       .flatMap((med) =>
@@ -58,6 +72,9 @@ export function TodaysMedications() {
         })
       )
       .sort((a, b) => a.time.localeCompare(b.time));
+
+
+    return result;
   }, [medications, logs, today]);
 
   const completionPercent = useMemo(() => {
