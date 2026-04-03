@@ -10,7 +10,6 @@ import {
   Pill,
   User,
   X,
-  ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -113,17 +112,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         })}
       </nav>
 
-      {/* About Link */}
+      {/* App Info */}
       <div className="px-4 pb-6">
-        <a
-          href="https://www.instagram.com/gauravvv_7?igsh=MWR0OHYxN3FzOHpmNQ=="
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all nav-glow"
-        >
-          <ExternalLink className="w-5 h-5" />
-          About
-        </a>
+        <div className="px-4 py-3 rounded-xl bg-secondary/30 border border-border/50">
+          <p className="text-xs text-muted-foreground font-medium">MedTrack v1.0</p>
+          <p className="text-[10px] text-muted-foreground/70 mt-1">Medication Adherence Platform</p>
+        </div>
       </div>
     </div>
   );

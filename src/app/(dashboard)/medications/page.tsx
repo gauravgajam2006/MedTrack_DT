@@ -13,6 +13,7 @@ import {
   X,
   Edit3,
   Power,
+  Search,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { formatTime, cn } from "@/lib/utils";
@@ -24,15 +25,24 @@ export default function MedicationsPage() {
   const { medications, refreshMedications } = useData();
   const [showModal, setShowModal] = useState(false);
   const [editingMed, setEditingMed] = useState<Medication | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const supabase = createClient();
 
+  const filteredMeds = useMemo(() => {
+    if (!searchQuery.trim()) return medications;
+    const q = searchQuery.toLowerCase();
+    return medications.filter(
+      (m) => m.name.toLowerCase().includes(q) || m.dosage.toLowerCase().includes(q)
+    );
+  }, [medications, searchQuery]);
+
   const activeMeds = useMemo(
-    () => medications.filter((m) => m.is_active),
-    [medications]
+    () => filteredMeds.filter((m) => m.is_active),
+    [filteredMeds]
   );
   const inactiveMeds = useMemo(
-    () => medications.filter((m) => !m.is_active),
-    [medications]
+    () => filteredMeds.filter((m) => !m.is_active),
+    [filteredMeds]
   );
 
   const handleDelete = async (id: string) => {
@@ -97,6 +107,28 @@ export default function MedicationsPage() {
           <span className="hidden sm:inline">Add Medication</span>
         </motion.button>
       </div>
+
+      {/* Search */}
+      {medications.length > 0 && (
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search medications..."
+            className="w-full pl-11 pr-4 py-3 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-secondary text-muted-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Active Medications */}
       {activeMeds.length > 0 && (

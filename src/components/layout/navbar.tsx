@@ -96,7 +96,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           </button>
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              {getGreeting()}{profile?.name ? `, ${profile.name}` : ""} 👋
+              MedTrack
             </h2>
           </div>
         </div>

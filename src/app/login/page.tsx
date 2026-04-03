@@ -7,7 +7,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, Pill, Heart, Shield } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Heart, Shield } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
@@ -52,8 +52,24 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent! Check your email.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send reset email");
+    }
+  };
+
   const features = [
-    { icon: Pill, text: "Smart medication tracking & reminders" },
+    { icon: Mail, text: "Smart medication tracking & reminders" },
     { icon: Heart, text: "Guardian & doctor notifications" },
     { icon: Shield, text: "Secure & private health data" },
   ];
@@ -185,6 +201,16 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-sm text-primary hover:text-primary-light font-medium transition-colors"
+                >
+                  Forgot your password?
+                </button>
               </div>
 
                 <motion.button

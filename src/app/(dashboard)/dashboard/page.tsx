@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { format, subDays, parseISO } from "date-fns";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 
 const TodaysMedications = dynamic(() => import("@/components/dashboard/todays-medications").then(mod => ({ default: mod.TodaysMedications })), { 
   ssr: false, 
@@ -123,6 +124,21 @@ export default function DashboardPage() {
     const allTakenCount = logs.filter((l) => l.status === "taken").length;
     const allMissedCount = logs.filter((l) => l.status === "missed").length;
 
+    // Streak calculation: consecutive days with 100% adherence ending today
+    let streak = 0;
+    for (let i = 0; i < 30; i++) {
+      const d = format(subDays(new Date(), i), "yyyy-MM-dd");
+      const dayLogs = logs.filter((l) => l.scheduled_date === d);
+      const dayTotal = dayLogs.length;
+      if (dayTotal === 0) break;
+      const dayTaken = dayLogs.filter((l) => l.status === "taken").length;
+      if (dayTaken === dayTotal) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
     return {
       activeMeds: medications.filter((m) => m.is_active).length,
       taken,
@@ -130,6 +146,7 @@ export default function DashboardPage() {
       pending,
       total,
       adherenceRate,
+      streak,
       last7Days,
       pieData: [
         { name: "Taken", value: allTakenCount, color: "#10b981" },
@@ -228,6 +245,11 @@ export default function DashboardPage() {
         </h1>
         <p className="text-muted-foreground mt-1">
           {format(new Date(), "EEEE, MMMM d, yyyy")}
+          {stats.streak > 0 && (
+            <span className="ml-3 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-xs font-semibold">
+              🔥 {stats.streak} day streak
+            </span>
+          )}
         </p>
       </motion.div>
 
@@ -267,6 +289,26 @@ export default function DashboardPage() {
       <motion.div variants={itemVariants}>
         <TodaysMedications />
       </motion.div>
+
+      {/* Empty State Onboarding */}
+      {stats.activeMeds === 0 && (
+        <motion.div variants={itemVariants} className="rounded-2xl bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent border border-primary/20 p-8 text-center">
+          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Pill className="w-8 h-8 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold text-foreground mb-2">Welcome to MedTrack! 🎉</h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Get started by adding your first medication. You&apos;ll receive smart reminders and see your adherence improve over time.
+          </p>
+          <Link
+            href="/medications"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all"
+          >
+            <Pill className="w-5 h-5" />
+            Add Your First Medication
+          </Link>
+        </motion.div>
+      )}
 
       {/* Charts Section */}
       <motion.div variants={itemVariants}>

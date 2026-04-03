@@ -307,10 +307,11 @@ export function TodaysMedications() {
                           item.medication.id
                         )
                       }
-                      className="px-3 py-1.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-500/20 transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-500/20 transition-colors flex items-center gap-1.5"
                       title="Send WhatsApp Reminder (Demo)"
                     >
                       <Send className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">WhatsApp</span>
                     </motion.button>
                   </>
                 )}
